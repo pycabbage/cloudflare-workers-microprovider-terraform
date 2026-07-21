@@ -13,7 +13,7 @@ gpg --full-generate-key
 Register the generated key in this repository's Actions secrets:
 
 - `GPG_PRIVATE_KEY`: the output of `gpg --armor --export-secret-keys <KEYID>`
-- `PASSPHRASE`: the passphrase set when the key was generated
+- `GPG_PASSPHRASE`: the passphrase set when the key was generated
 
 ## 2. Commit the public key
 
