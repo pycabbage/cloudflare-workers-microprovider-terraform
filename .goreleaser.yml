@@ -1,0 +1,62 @@
+# GoReleaser 設定
+# hashicorp/terraform-provider-scaffolding-framework の .goreleaser.yml をベースに、
+# GitHub Pages 上の静的レジストリ (Terraform provider registry protocol) 向けに調整している。
+# terraform-registry-manifest.json 関連の設定は公式レジストリ専用のため含めない。
+version: 2
+
+# リポジトリ名 (cloudflare-workers-microprovider-terraform) と
+# プロバイダーバイナリ名が異なるため、project_name を明示する
+project_name: terraform-provider-cloudflare-workers-microprovider
+
+before:
+  hooks:
+    # ビルド前に go.mod / go.sum の整合性を確認する
+    - go mod tidy
+
+builds:
+  - env:
+      # GoReleaser は CGO を自動で無効化しないため明示する
+      - CGO_ENABLED=0
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
+    ldflags:
+      # main.go に version 変数を持たないため -X フラグは指定しない
+      - '-s -w'
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      # 対象は linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64 の5つ
+      - goos: windows
+        goarch: arm64
+    # zip 内のバイナリ名。Terraform が要求する {name}_v{version} 形式
+    binary: '{{ .ProjectName }}_v{{ .Version }}'
+
+archives:
+  # Terraform provider の配布形式は zip 固定
+  - formats: [zip]
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+  algorithm: sha256
+
+signs:
+  - artifacts: checksum
+    args:
+      # GPG_FINGERPRINT はワークフローの GPG インポートステップから渡される
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+
+changelog:
+  disable: true

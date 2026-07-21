@@ -1,0 +1,11 @@
+# GoReleaser の出力
+dist/
+
+# レジストリサイト生成物
+_site/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*

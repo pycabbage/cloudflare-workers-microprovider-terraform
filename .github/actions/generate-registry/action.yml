@@ -1,0 +1,74 @@
+# GitHub Releases のアセット情報から Terraform provider registry protocol の
+# 静的サイト (versions / download エンドポイントの JSON 群) を生成する composite action。
+# 実体の生成処理は internal/registry の Go プログラムが行う。
+name: 'Generate registry site'
+description: 'GitHub Releases から Terraform provider registry protocol の静的サイトを生成する'
+
+inputs:
+  namespace:
+    description: 'プロバイダーの namespace（例: pycabbage）'
+    required: true
+  provider-type:
+    description: 'プロバイダーの type（例: cloudflare-workers-microprovider）'
+    required: true
+  public-key-file:
+    description: 'ASCII-armored GPG 公開鍵ファイルのパス（リポジトリにコミット済みであること）'
+    required: true
+  output-dir:
+    description: '生成したレジストリサイトの出力先ディレクトリ'
+    required: true
+  github-token:
+    description: 'GitHub API（リリース一覧の取得）に使用するトークン'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+
+    - name: Check public key file
+      shell: bash
+      env:
+        PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
+      run: |
+        if [ ! -f "$PUBLIC_KEY_FILE" ]; then
+          echo "::error::${PUBLIC_KEY_FILE} が見つかりません。gpg-public-key.ascがコミットされていません。READMEのセットアップ手順を参照"
+          exit 1
+        fi
+
+    - name: Extract GPG key ID
+      id: key
+      shell: bash
+      env:
+        PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
+      run: |
+        # fpr レコードの 10 番目のフィールドが fingerprint（40桁・大文字hex）。
+        # その末尾 16 桁が signing_keys に載せる long key ID になる
+        FINGERPRINT="$(gpg --show-keys --with-colons "$PUBLIC_KEY_FILE" | awk -F: '$1 == "fpr" { print $10; exit }')"
+        if [ -z "$FINGERPRINT" ]; then
+          echo "::error::${PUBLIC_KEY_FILE} から GPG fingerprint を取得できませんでした"
+          exit 1
+        fi
+        echo "key-id=${FINGERPRINT: -16}" >> "$GITHUB_OUTPUT"
+
+    - name: Generate registry JSON
+      shell: bash
+      env:
+        # internal/registry は GITHUB_TOKEN のほか、ランナーが自動設定する
+        # GITHUB_REPOSITORY / GITHUB_API_URL も参照する
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        NAMESPACE: ${{ inputs.namespace }}
+        PROVIDER_TYPE: ${{ inputs.provider-type }}
+        PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
+        KEY_ID: ${{ steps.key.outputs.key-id }}
+        OUTPUT_DIR: ${{ inputs.output-dir }}
+      run: |
+        go run ./internal/registry \
+          -namespace "$NAMESPACE" \
+          -type "$PROVIDER_TYPE" \
+          -public-key-file "$PUBLIC_KEY_FILE" \
+          -key-id "$KEY_ID" \
+          -output "$OUTPUT_DIR"
