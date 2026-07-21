@@ -310,14 +310,6 @@ func TestGenerateTwoVersions(t *testing.T) {
 	} else if len(nojekyll) != 0 {
 		t.Errorf(".nojekyll is not an empty file")
 	}
-	index, err := os.ReadFile(filepath.Join(cfg.outputDir, "index.html"))
-	if err != nil {
-		t.Fatalf("index.html was not generated: %v", err)
-	}
-	wantSource := "pycabbage.github.io/pycabbage/cloudflare-workers-microprovider"
-	if !strings.Contains(string(index), wantSource) {
-		t.Errorf("index.html does not contain provider source %q", wantSource)
-	}
 }
 
 func TestGenerateSkipsDraftAndInvalidTag(t *testing.T) {

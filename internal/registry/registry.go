@@ -6,7 +6,6 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"maps"
 	"net/http"
@@ -462,14 +461,6 @@ func writeRegistry(cfg config, keyID, armor string, versions []providerVersion) 
 	}
 	fileCount++
 
-	owner, _, _ := strings.Cut(cfg.repo, "/")
-	source := fmt.Sprintf("%s.github.io/%s/%s", owner, cfg.namespace, cfg.providerType)
-	indexHTML := renderIndexHTML(source, cfg.namespace, cfg.providerType, versions)
-	if err := os.WriteFile(filepath.Join(cfg.outputDir, "index.html"), []byte(indexHTML), 0o644); err != nil {
-		return 0, err
-	}
-	fileCount++
-
 	return fileCount, nil
 }
 
@@ -483,21 +474,4 @@ func writeJSON(path string, v any) error {
 		return err
 	}
 	return os.WriteFile(path, data, 0o644)
-}
-
-func renderIndexHTML(source, namespace, providerType string, versions []providerVersion) string {
-	versionsPath := fmt.Sprintf("v1/providers/%s/%s/versions", namespace, providerType)
-	var b strings.Builder
-	b.WriteString("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n")
-	fmt.Fprintf(&b, "<title>%s</title>\n", html.EscapeString(source))
-	b.WriteString("</head>\n<body>\n")
-	b.WriteString("<h1>Terraform Provider static registry</h1>\n")
-	b.WriteString("<p>This site is a static registry implementing the Terraform provider registry protocol.</p>\n")
-	fmt.Fprintf(&b, "<p>provider source: <code>%s</code></p>\n", html.EscapeString(source))
-	fmt.Fprintf(&b, "<h2>Available versions (<a href=\"%s\">versions endpoint</a>)</h2>\n<ul>\n", html.EscapeString(versionsPath))
-	for _, v := range versions {
-		fmt.Fprintf(&b, "<li>%s</li>\n", html.EscapeString(v.version))
-	}
-	b.WriteString("</ul>\n</body>\n</html>\n")
-	return b.String()
 }

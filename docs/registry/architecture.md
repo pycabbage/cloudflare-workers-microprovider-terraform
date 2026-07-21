@@ -63,6 +63,10 @@ protocol client.
   `docs/registry/troubleshooting.md`, which must be placed manually in the
   `pycabbage.github.io` user-site repository for its own `.well-known/`
   directory.
+- The generator does not produce a human-readable index page. The site's
+  root page is a separate Next.js application in `web/`, built by CI and
+  merged into `_site` before the generator runs; see
+  `docs/registry/releasing.md` for how the two outputs are combined.
 
 ## Naming contract
 
