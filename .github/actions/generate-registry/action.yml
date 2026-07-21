@@ -8,8 +8,8 @@ inputs:
   provider-type:
     description: 'Provider type (e.g. cloudflare-workers-microprovider)'
     required: true
-  public-key-file:
-    description: 'Path to the ASCII-armored GPG public key file (must already be committed to the repository)'
+  public-key:
+    description: 'ASCII-armored GPG public key content (from the GPG_PUBLIC_KEY secret)'
     required: true
   output-dir:
     description: 'Output directory for the generated registry site'
@@ -26,21 +26,25 @@ runs:
         go-version-file: 'go.mod'
         cache: true
 
-    - name: Check public key file
+    - name: Write public key file
+      id: keyfile
       shell: bash
       env:
-        PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
+        PUBLIC_KEY: ${{ inputs.public-key }}
       run: |
-        if [ ! -f "$PUBLIC_KEY_FILE" ]; then
-          echo "::error::${PUBLIC_KEY_FILE} not found. gpg-public-key.asc has not been committed. See docs/registry/setup.md"
+        if [ -z "$PUBLIC_KEY" ]; then
+          echo "::error::public-key input is empty. Register the GPG_PUBLIC_KEY secret. See docs/registry/setup.md"
           exit 1
         fi
+        PUBLIC_KEY_FILE="$RUNNER_TEMP/gpg-public-key.asc"
+        printf '%s\n' "$PUBLIC_KEY" > "$PUBLIC_KEY_FILE"
+        echo "path=$PUBLIC_KEY_FILE" >> "$GITHUB_OUTPUT"
 
     - name: Extract GPG key ID
       id: key
       shell: bash
       env:
-        PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
+        PUBLIC_KEY_FILE: ${{ steps.keyfile.outputs.path }}
       run: |
         FINGERPRINT="$(gpg --show-keys --with-colons "$PUBLIC_KEY_FILE" | awk -F: '$1 == "fpr" { print $10; exit }')"
         if [ -z "$FINGERPRINT" ]; then
@@ -55,7 +59,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         NAMESPACE: ${{ inputs.namespace }}
         PROVIDER_TYPE: ${{ inputs.provider-type }}
-        PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
+        PUBLIC_KEY_FILE: ${{ steps.keyfile.outputs.path }}
         KEY_ID: ${{ steps.key.outputs.key-id }}
         OUTPUT_DIR: ${{ inputs.output-dir }}
       run: |

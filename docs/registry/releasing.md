@@ -50,10 +50,11 @@ principle of least privilege.
 The `registry` job delegates the actual site generation to the composite
 action at `.github/actions/generate-registry/action.yml`, which:
 
-1. Checks that the public key file (input `public-key-file`, normally
-   `gpg-public-key.asc`) exists. If it is missing, the action fails with a
-   clear error telling you to commit it (see `docs/registry/setup.md`).
-2. Extracts the GPG key ID from that public key file by running
+1. Writes the public key content (input `public-key`, sourced from the
+   `GPG_PUBLIC_KEY` secret) to a temporary file under `$RUNNER_TEMP`. If the
+   input is empty, the action fails with a clear error telling you to
+   register the secret (see `docs/registry/setup.md`).
+2. Extracts the GPG key ID from that temporary file by running
    `gpg --show-keys --with-colons <file>` and reading the `fpr` record: the
    10th colon-separated field of the `fpr` line is the 40-hex-character
    fingerprint, and the last 16 characters of it are used as the key ID
@@ -76,13 +77,17 @@ action at `.github/actions/generate-registry/action.yml`, which:
 `internal/registry` can also be run directly:
 
 ```sh
+gpg --armor --export <KEYID> > /tmp/gpg-public-key.asc
 go run ./internal/registry \
   -namespace pycabbage \
   -type cloudflare-workers-microprovider \
-  -public-key-file gpg-public-key.asc \
+  -public-key-file /tmp/gpg-public-key.asc \
   -key-id ABCDEF0123456789 \
   -output _site
 ```
+
+(`-public-key-file` always takes a file path; in CI, the composite action
+writes the `GPG_PUBLIC_KEY` secret to a temporary file before calling this.)
 
 It reads these environment variables:
 

@@ -15,9 +15,12 @@ If `terraform init` fails, check the following in order:
 - Does the `github-pages` environment's protection rules allow the tag
   `v*`? If rejected, the Pages deployment fails and the registry JSON is
   never served.
-- Does the public key in `gpg-public-key.asc` actually match the key used
-  for signing (`GPG_PRIVATE_KEY`)? A mismatch causes checksum/signature
-  verification errors on the Terraform client side.
+- Does the `GPG_PUBLIC_KEY` secret actually match the key used for signing
+  (`GPG_PRIVATE_KEY`)? A mismatch causes checksum/signature verification
+  errors on the Terraform client side. Secrets cannot be read back through
+  the GitHub UI or API, so verify the fingerprint locally with
+  `gpg --show-keys` before registering it, rather than trying to diff it
+  after the fact.
 
 ## Generator behavior: what gets skipped with a warning
 
@@ -60,6 +63,15 @@ propagate into the published registry site:
 
 Either form is normalized to the last 16 characters, upper-cased, before
 being written into the registry JSON as `signing_keys.gpg_public_keys[].key_id`.
+
+## Key rotation caveat
+
+The generator embeds the *current* `GPG_PUBLIC_KEY` into the `signing_keys`
+field of every version's download JSON, including versions signed with a
+previously rotated-out key. Rotating the key therefore breaks signature
+verification for old releases that were signed with the old key, unless you
+keep re-signing and re-uploading their `SHA256SUMS.sig`. In practice, treat
+key rotation as a breaking change for already-published versions.
 
 ## Version ordering caveat
 

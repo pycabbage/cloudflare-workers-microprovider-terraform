@@ -61,7 +61,7 @@ jobs:
         with:
           namespace: pycabbage
           provider-type: cloudflare-workers-microprovider
-          public-key-file: gpg-public-key.asc
+          public-key: ${{ secrets.GPG_PUBLIC_KEY }}
           output-dir: _site
           github-token: ${{ secrets.GITHUB_TOKEN }}
 

@@ -111,7 +111,7 @@ func generate(cfg config) error {
 
 	armorBytes, err := os.ReadFile(cfg.publicKeyFile)
 	if err != nil {
-		return fmt.Errorf("cannot read GPG public key file (check that gpg-public-key.asc is committed at the repository root): %w", err)
+		return fmt.Errorf("cannot read GPG public key file (check that the GPG_PUBLIC_KEY secret is set): %w", err)
 	}
 	armor := string(armorBytes)
 	if !strings.Contains(armor, "BEGIN PGP PUBLIC KEY BLOCK") {
