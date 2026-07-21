@@ -30,7 +30,7 @@ type workersSubdomainModel struct {
 }
 
 func (d *workersSubdomainDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_workers_subdomain"
+	resp.TypeName = req.ProviderTypeName + "_subdomain"
 }
 
 func (d *workersSubdomainDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {

@@ -1,24 +1,21 @@
-# GitHub Releases のアセット情報から Terraform provider registry protocol の
-# 静的サイト (versions / download エンドポイントの JSON 群) を生成する composite action。
-# 実体の生成処理は internal/registry の Go プログラムが行う。
 name: 'Generate registry site'
-description: 'GitHub Releases から Terraform provider registry protocol の静的サイトを生成する'
+description: 'Generate a static Terraform provider registry protocol site from GitHub Releases'
 
 inputs:
   namespace:
-    description: 'プロバイダーの namespace（例: pycabbage）'
+    description: 'Provider namespace (e.g. pycabbage)'
     required: true
   provider-type:
-    description: 'プロバイダーの type（例: cloudflare-workers-microprovider）'
+    description: 'Provider type (e.g. cloudflare-workers-microprovider)'
     required: true
   public-key-file:
-    description: 'ASCII-armored GPG 公開鍵ファイルのパス（リポジトリにコミット済みであること）'
+    description: 'Path to the ASCII-armored GPG public key file (must already be committed to the repository)'
     required: true
   output-dir:
-    description: '生成したレジストリサイトの出力先ディレクトリ'
+    description: 'Output directory for the generated registry site'
     required: true
   github-token:
-    description: 'GitHub API（リリース一覧の取得）に使用するトークン'
+    description: 'Token used to call the GitHub API (to list releases)'
     required: true
 
 runs:
@@ -35,7 +32,7 @@ runs:
         PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
       run: |
         if [ ! -f "$PUBLIC_KEY_FILE" ]; then
-          echo "::error::${PUBLIC_KEY_FILE} が見つかりません。gpg-public-key.ascがコミットされていません。READMEのセットアップ手順を参照"
+          echo "::error::${PUBLIC_KEY_FILE} not found. gpg-public-key.asc has not been committed. See docs/registry/setup.md"
           exit 1
         fi
 
@@ -45,11 +42,9 @@ runs:
       env:
         PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
       run: |
-        # fpr レコードの 10 番目のフィールドが fingerprint（40桁・大文字hex）。
-        # その末尾 16 桁が signing_keys に載せる long key ID になる
         FINGERPRINT="$(gpg --show-keys --with-colons "$PUBLIC_KEY_FILE" | awk -F: '$1 == "fpr" { print $10; exit }')"
         if [ -z "$FINGERPRINT" ]; then
-          echo "::error::${PUBLIC_KEY_FILE} から GPG fingerprint を取得できませんでした"
+          echo "::error::Could not extract a GPG fingerprint from ${PUBLIC_KEY_FILE}"
           exit 1
         fi
         echo "key-id=${FINGERPRINT: -16}" >> "$GITHUB_OUTPUT"
@@ -57,8 +52,6 @@ runs:
     - name: Generate registry JSON
       shell: bash
       env:
-        # internal/registry は GITHUB_TOKEN のほか、ランナーが自動設定する
-        # GITHUB_REPOSITORY / GITHUB_API_URL も参照する
         GITHUB_TOKEN: ${{ inputs.github-token }}
         NAMESPACE: ${{ inputs.namespace }}
         PROVIDER_TYPE: ${{ inputs.provider-type }}

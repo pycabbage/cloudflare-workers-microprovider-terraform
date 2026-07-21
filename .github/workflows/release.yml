@@ -1,7 +1,3 @@
-# リリースワークフロー
-# - タグ (v*) の push: GoReleaser で GitHub Release を作成し、その後
-#   GitHub Pages に Terraform provider registry protocol の静的サイトをデプロイする
-# - workflow_dispatch: リリースは行わず、レジストリサイトのみを再生成・再デプロイする
 name: Release
 
 on:
@@ -10,21 +6,17 @@ on:
       - 'v*'
   workflow_dispatch:
 
-# 最小権限の原則に従い、トップレベルでは権限を付与せずジョブ単位で付与する
 permissions: {}
 
 jobs:
   goreleaser:
-    # workflow_dispatch 時はリリースをスキップし、registry ジョブのみ実行する
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-      # GitHub Release の作成とアセットのアップロードに必要
       contents: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          # GoReleaser がタグと履歴を参照するため全履歴を取得する
           fetch-depth: 0
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -37,7 +29,7 @@ jobs:
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          passphrase: ${{ secrets.PASSPHRASE }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
@@ -45,24 +37,19 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # SHA256SUMS への detached 署名に使用する鍵の fingerprint
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
 
   registry:
     needs: goreleaser
-    # workflow_dispatch 時は goreleaser ジョブが skipped になるため、
-    # success に加えて skipped も許可する（cancelled 時は実行しない）
     if: ${{ !cancelled() && (needs.goreleaser.result == 'success' || needs.goreleaser.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # GitHub Pages へのデプロイに必要
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
-    # Pages デプロイの同時実行を防ぐ。進行中のデプロイは中断しない
     concurrency:
       group: github-pages
       cancel-in-progress: false

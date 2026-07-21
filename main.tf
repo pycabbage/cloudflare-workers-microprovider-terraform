@@ -4,25 +4,23 @@ terraform {
       source  = "cloudflare/cloudflare"
       version = "~> 5.0"
     }
-    cfsubdomain = {
+    cfworkers = {
       source = "pycabbage.github.io/pycabbage/cloudflare-workers-microprovider"
     }
   }
 }
 
-# どちらのproviderも設定ブロックは空でよい。
-# 認証は両者とも CLOUDFLARE_API_TOKEN 等の環境変数から同じ規則で解決される。
 provider "cloudflare" {}
-provider "cfsubdomain" {}
+provider "cfworkers" {}
 
 variable "account_id" {
   type = string
 }
 
-data "cfsubdomain_workers_subdomain" "this" {
+data "cfworkers_subdomain" "this" {
   account_id = var.account_id
 }
 
 output "worker_url" {
-  value = "https://hello-world.${data.cfsubdomain_workers_subdomain.this.subdomain}.workers.dev"
+  value = "https://hello-world.${data.cfworkers_subdomain.this.subdomain}.workers.dev"
 }
