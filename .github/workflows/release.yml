@@ -59,7 +59,7 @@ jobs:
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         with:
           static_site_generator: next
-          generator_config_file: ./web/next.config.ts
+          generator_config_file: ./web/next.config.mjs
 
       - name: Generate registry site
         uses: ./.github/actions/generate-registry
@@ -71,10 +71,11 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-
-      - name: Install landing page dependencies
-        working-directory: web
-        run: pnpm install --frozen-lockfile
+        with:
+          package_json_file: web/package.json
+          cache_dependency_path: web/pnpm-lock.yaml
+          cache: true
+          run_install: true
 
       - name: Build landing page
         working-directory: web
