@@ -7,7 +7,6 @@ terraform {
     }
     cfworkers = {
       source  = "pycabbage.github.io/pycabbage/cloudflare-workers-microprovider"
-      version = "0.0.0-alpha.2"
     }
   }
 }

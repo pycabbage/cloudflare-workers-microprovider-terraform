@@ -2,15 +2,14 @@
 # Manual edits may be lost in future updates.
 
 provider "pycabbage.github.io/pycabbage/cloudflare-workers-microprovider" {
-  version     = "0.0.0-alpha.2"
-  constraints = "0.0.0-alpha.2"
+  version = "0.0.1"
   hashes = [
-    "h1:BySzsmdkV7VjNJmZKw9qrFRNkWiH1z/4q+famfCbhhk=",
-    "zh:09f43ead0ecf9d2d6701d2e17dbc55a3eb1ea753f0f1cc5b3c93ea49bf36781e",
-    "zh:4cb204a4a07400ad053669d9ccf739bbe44b3aca69ef9114ddceb8b3b84e87de",
-    "zh:8a528cb7a6562cbd2565108a322758690af6250204ec74cfa22f027bd65e8e5d",
-    "zh:cd612b20e9abf99a4c11f88317338d63fc51f7d1cd7d19ba3bba8647fd376744",
-    "zh:d61524c53f1a8c7d8830fb32b6d94debaa7919a15705deb75fc2ff09b0498b7f",
+    "h1:os+Vw5GEaqHo/13d2XdB5q8TJEI061kmkWcYJNNQ/Qo=",
+    "zh:784026a16938241c85a9c5e83adfae73096e131c0e89209fef5d3e3f24e19378",
+    "zh:a5f89a8a9a5ea222fe6462d5480c3bde4bf15d8cf3ed7c39a921f917c5f9c2fb",
+    "zh:b959ac9ddb3ea0cfc506d5c698187c8a7389551339a7deca7e9feebecf16700a",
+    "zh:be2e08b702254e2a7345bf366d98b20c2056d33372990ab0a1aea6bdd4a09189",
+    "zh:ca0f184568e6b79c156ee3e5358c87ce36fbb295d1e10109ed9584fc29b131aa",
   ]
 }
 
