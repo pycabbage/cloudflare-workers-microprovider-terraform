@@ -3,6 +3,6 @@ dist/
 _site/
 
 .terraform/
-.terraform.lock.hcl
+.wrangler/
 *.tfstate
 *.tfstate.*
