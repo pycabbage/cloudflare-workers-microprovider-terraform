@@ -46,31 +46,43 @@ CI then automatically builds and signs the binaries with GoReleaser,
 publishes them to GitHub Releases, and regenerates and deploys the registry
 site (GitHub Pages).
 
-`workflow_dispatch` can also be used to regenerate only the registry site
-(without creating a new release).
-
 ## What the workflow jobs do
 
 The `Release` workflow (`.github/workflows/release.yml`) is triggered by
-pushing a `v*` tag or by manual `workflow_dispatch`, and has two jobs:
+pushing a `v*` tag or by pushing to `main`, and has two jobs:
 
-- `goreleaser`: runs only on the tag-push event (`if:
-  github.event_name == 'push'`). It checks out full history (GoReleaser
-  needs tags and history), imports the GPG signing key, and runs
-  `goreleaser release --clean`, which builds all platform binaries, zips
-  them, computes `SHA256SUMS`, signs it, and uploads everything to the
-  GitHub Release. It has `contents: write` permission (needed to create the
-  release and upload assets).
+- `goreleaser`: runs on both trigger events (`if: github.event_name ==
+  'push'`). It checks out full history (GoReleaser needs tags and history)
+  and sets up Go with `actions/setup-go`'s built-in module/build caching.
+  What happens next depends on `github.ref_type`:
+  - On a tag push (`github.ref_type == 'tag'`), it imports the GPG signing
+    key and runs `goreleaser release --clean`, which builds all platform
+    binaries, zips them, computes `SHA256SUMS`, signs it, and uploads
+    everything to the GitHub Release.
+  - On a push to `main` (`github.ref_type == 'branch'`), it skips the GPG
+    import step entirely and instead runs `goreleaser build --clean
+    --snapshot`, a build-only pass across GoReleaser's full cross-compile
+    target matrix with no signing and no publishing. This run's only purpose
+    is to populate the default branch's GitHub Actions cache (used by
+    `actions/setup-go`) with a warm Go module/build cache. GitHub Actions
+    cache scoping means a tag-triggered workflow run can only restore a
+    cache from the default branch, never from a different tag, so without
+    this warm-up every tagged release would build fully cold; this main-push
+    run keeps that cache populated so subsequent tag releases can restore
+    from it.
 
-- `registry`: depends on `goreleaser` and runs if that job succeeded or was
-  skipped, but not if it was cancelled:
-  `if: ${{ !cancelled() && (needs.goreleaser.result == 'success' ||
-  needs.goreleaser.result == 'skipped') }}`.
-  This allows `workflow_dispatch` runs (where `goreleaser` is skipped
-  because of its `if` condition) to still regenerate and redeploy the
-  registry site from whatever releases already exist. It has `pages: write`
-  and `id-token: write` permissions, deploys to the `github-pages`
-  environment, and uses concurrency group `github-pages` with
+  The job has `contents: write` permission (needed to create the release and
+  upload assets on a tag push).
+
+- `registry`: depends on `goreleaser` and runs only after a real tag
+  release: `if: ${{ !cancelled() && github.ref_type == 'tag' &&
+  (needs.goreleaser.result == 'success' || needs.goreleaser.result ==
+  'skipped') }}`. The added `github.ref_type == 'tag'` condition means this
+  job never fires on a plain push to `main`; it also has no manual-dispatch
+  trigger anymore, since that trigger type has been removed from the
+  workflow entirely. Mechanically the job is otherwise unchanged: it has
+  `pages: write` and `id-token: write` permissions, deploys to the
+  `github-pages` environment, and uses concurrency group `github-pages` with
   `cancel-in-progress: false` so that Pages deployments never overlap but an
   in-progress deployment is never aborted mid-flight.
 
