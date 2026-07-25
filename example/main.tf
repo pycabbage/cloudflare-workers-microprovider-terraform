@@ -28,3 +28,11 @@ output "account_id" {
 output "subdomain" {
   value = data.cfworkers_subdomain.this.subdomain
 }
+
+locals {
+  wrangler_config = provider::cfworkers::jsonc_decode(file("${path.module}/wrangler.jsonc"))
+}
+
+output "wrangler_worker_name" {
+  value = local.wrangler_config.name
+}

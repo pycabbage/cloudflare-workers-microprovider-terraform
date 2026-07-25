@@ -29,7 +29,7 @@ deliberately uses different values for each.
 ## Resources and data sources
 
 - All resources and data sources use the prefix `cfworkers_`.
-- Currently there is one data source: `cfworkers_subdomain`.
+- There is currently one data source: `cfworkers_subdomain`.
 
 ```hcl
 data "cfworkers_subdomain" "this" {
@@ -43,10 +43,56 @@ Output: `subdomain` (computed) - the account's `workers.dev` subdomain (the
 `octocat` in `hello-world.octocat.workers.dev`). Internally this calls
 `GET /accounts/{account_id}/workers/subdomain`.
 
+## Functions
+
+See the "Requirements" section below for the Terraform CLI version needed
+to call provider-defined functions such as `jsonc_decode`.
+
+### `jsonc_decode`
+
+`provider::cfworkers::jsonc_decode(content)` parses JSON-with-comments
+(JSONC) text - the format Cloudflare's `wrangler.jsonc` uses, which extends
+JSON with `//` line comments, `/* */` block comments, and trailing commas -
+and returns a genuine decoded value, just like the built-in `jsondecode()`
+does for plain JSON. Unlike the removed `cfworkers_jsonc` data source this
+replaced, there's no intermediate JSON string and no second `jsondecode()`
+call: the function's return value is already an object/array/string/
+number/bool/null tree you can navigate directly with `.attr` / `[index]`
+syntax.
+
+This function does no file I/O of its own - pass it text you've already
+read, typically with Terraform's own built-in `file()` function:
+
+```hcl
+locals {
+  wrangler_config = provider::cfworkers::jsonc_decode(file("${path.module}/wrangler.jsonc"))
+}
+
+output "worker_name" {
+  value = local.wrangler_config.name
+}
+```
+
+Parameter: `content` (required, string) - JSONC text to decode.
+
+Return: a dynamic value - the decoded JSON structure. JSON objects become
+Terraform object values and JSON arrays become Terraform tuple values
+rather than lists, since JSON arrays may mix element types positionally
+(the same reason `jsondecode()`/`cty` model JSON arrays as tuples
+internally); this is an implementation detail rather than something you
+typically need to think about when just reading fields back out.
+
+This function needs no authentication at all - unlike `cfworkers_subdomain`
+above, it makes no API calls, requires no credentials of any kind, and
+(being a function rather than a data source) persists nothing to Terraform
+state.
+
 ## Authentication
 
 Neither the `cloudflare` provider nor `cfworkers` needs any configuration
-in the `provider` block - both blocks can be empty:
+in the `provider` block - both blocks can be empty. (Only `cfworkers_subdomain`
+above actually uses Cloudflare credentials; `jsonc_decode` needs none, as
+noted above.)
 
 ```hcl
 provider "cloudflare" {}
@@ -67,7 +113,15 @@ implement any of that branching logic itself.
 ## Requirements
 
 - Terraform >= 1.1 (this provider implements plugin protocol version 6,
-  which requires Terraform 1.1 or later).
+  which requires Terraform 1.1 or later) to use `cfworkers_subdomain`.
+- A sufficiently recent Terraform CLI to call the `jsonc_decode` provider
+  function - provider-defined functions are a newer Terraform CLI feature
+  than plugin protocol 6 itself. This repository's own `example/main.tf`
+  already requires `>= 1.15`, so building/testing against that example is a
+  safe floor; if you're integrating `jsonc_decode` into other
+  configurations, check your Terraform CLI's release notes for
+  provider-defined function support if you need to support an older
+  version.
 
 ## Implementation note
 

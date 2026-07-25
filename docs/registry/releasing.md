@@ -1,5 +1,38 @@
 # Release procedure
 
+## Exercising unreleased changes locally
+
+Trying out a new resource, data source, or function (such as
+`jsonc_decode`) via `example/` requires the `example/main.tf` config to
+resolve to a provider binary that actually contains the change, since
+`terraform init` normally only fetches already-published releases from the
+static registry. There are two ways to do that without cutting a real
+release:
+
+1. Cut a real (pre-)release anyway, following "Cutting a release" below.
+   **Never tag it `v0.0.0`.** An already-diagnosed upstream bug in
+   Terraform's `go-versions` handling makes the literal version `0.0.0`
+   collide with that library's internal zero-value sentinel, so it never
+   matches any version constraint - use `0.0.2` or later instead (see the
+   `fix: update Cloudflare Workers microprovider version to 0.0.1` commit
+   for prior history with this class of problem).
+2. For fast local iteration before cutting a release, build the provider
+   binary locally (`go build -o terraform-provider-cloudflare-workers-microprovider .`)
+   and point Terraform at it with a `dev_overrides` block in `~/.terraformrc`:
+
+   ```hcl
+   provider_installation {
+     dev_overrides {
+       "pycabbage.github.io/pycabbage/cloudflare-workers-microprovider" = "/absolute/path/to/this/repo"
+     }
+     direct {}
+   }
+   ```
+
+   With `dev_overrides` active, `terraform init` is skipped entirely for
+   that provider and Terraform always uses the locally built binary, so you
+   can rebuild and re-`terraform plan`/`apply` without publishing anything.
+
 ## Cutting a release
 
 Tag and push:

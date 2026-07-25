@@ -1,0 +1,13 @@
+{
+  // Worker name, must be globally unique within the account
+  "name": "cloudflare-workers-microprovider-example",
+  "main": "src/index.ts",
+  /*
+   * compatibility_date pins the Workers runtime behavior to a specific
+   * date so future runtime changes don't silently change behavior.
+   */
+  "compatibility_date": "2026-06-01",
+  "vars": {
+    "ENVIRONMENT": "example",
+  },
+}
