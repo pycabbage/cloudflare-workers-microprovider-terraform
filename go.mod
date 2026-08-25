@@ -3,7 +3,7 @@ module github.com/pycabbage/cloudflare-workers-microprovider-terraform
 go 1.26.5
 
 require (
-	github.com/cloudflare/cloudflare-go/v7 v7.7.0
+	github.com/cloudflare/cloudflare-go/v7 v7.9.0
 	github.com/hashicorp/terraform-plugin-framework v1.14.1
 	github.com/tailscale/hujson v0.0.0-20260722022634-78b5b162ee49
 )
